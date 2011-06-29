@@ -2,7 +2,8 @@
 # Makefile to produce acdxing library
 #================================================================
 
-include /ps/dsc/src/co/Make.auto
+CPU=L865
+include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
 

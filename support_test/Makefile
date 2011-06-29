@@ -2,6 +2,7 @@
 # Makefile to produce vmeio support library test program
 #================================================================
 
+CPU=L865
 include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
@@ -22,7 +23,10 @@ all: $(ALL)
 
 vmeiotest.$(CPU).o: $(SRCS) $(HDRS)
 
-vmeiotest.$(CPU): vmeiotest.$(CPU).o
+vmeiotest.$(CPU): vmeiotest.$(CPU).o $(LDLIBS)
+
+../support/vmeio_support.L865.a:
+	make -C ../support
 
 clean:
 	rm -f *.o *.$(CPU)

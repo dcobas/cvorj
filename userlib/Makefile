@@ -8,7 +8,7 @@ include /ps/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
 
-CFLAGS= -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -I. -I../driver -I../../vmeio/include -fPIC
+CFLAGS= -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -I. -I../driver -I../include -fPIC
 
 SRCS=CtcUserDefinedAccess.c CtcUserDefinedAccess.h
 
