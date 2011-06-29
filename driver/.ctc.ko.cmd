@@ -1,1 +1,0 @@
-cmd_/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/examples/ctc/driver/ctc.ko := ld -m elf_i386 -r -m elf_i386   -o /acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/examples/ctc/driver/ctc.ko /acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/examples/ctc/driver/ctc.o /acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/examples/ctc/driver/ctc.mod.o
