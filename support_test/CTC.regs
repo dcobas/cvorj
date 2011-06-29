@@ -1,0 +1,21 @@
+NAME CTC
+
+  RegName		RwFlags	Offset		Size	Window	Depth
+
+$ STATUS          	RO	0x00000000	4	1	0
+$ CNTR_ENABLE     	RW	0x00000004	4	1	0
+$ clock2Delay     	RW	0x00000010	4	1	0
+$ cntr2CurVal     	RO	0x0000001C	4	1	0
+$ confChan        	RW	0x00000008	4	1	0
+$ cntr1CurVal     	RO	0x00000018	4	1	0
+$ outputCntr      	RO	0x00000014	4	1	0
+$ clock1Delay     	RW	0x0000000C	4	1	0
+$ channel_1       	RW	0x00000008	4	1	6
+$ channel_2       	RW	0x00000020	4	1	6
+$ channel_3       	RW	0x00000038	4	1	6
+$ channel_4       	RW	0x00000050	4	1	6
+$ channel_5       	RW	0x00000068	4	1	6
+$ channel_6       	RW	0x00000080	4	1	6
+$ channel_7       	RW	0x00000098	4	1	6
+$ channel_8       	RW	0x000000B0	4	1	6
+$ ALL_CHANNELS    	RW	0x00000008	4	1	48

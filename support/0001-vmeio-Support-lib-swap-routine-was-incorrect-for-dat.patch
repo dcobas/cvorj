@@ -1,0 +1,28 @@
+From 595d789a91d42ab91180883ce911e39df1f4cfeb Mon Sep 17 00:00:00 2001
+From: Julian Lewis <julian.lewis@cern.ch>
+Date: Wed, 23 Feb 2011 11:12:35 +0100
+Subject: [PATCH] vmeio: Support lib swap routine was incorrect for data width 2
+
+Signed-off-by: Julian Lewis <julian.lewis@cern.ch>
+---
+ vmeio/support/vmeio_support.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/vmeio/support/vmeio_support.c b/vmeio/support/vmeio_support.c
+index e4b5487..0758629 100644
+--- a/vmeio/support/vmeio_support.c
++++ b/vmeio/support/vmeio_support.c
+@@ -305,8 +305,8 @@ char *cp, *bp, c;
+ 	 cp = &bp[i];
+ 
+ 	 c = cp[1];
+-	 cp[0] = cp[1];
+-	 cp[1] = c;
++	 cp[1] = cp[0];
++	 cp[0] = c;
+       }
+       return;
+    }
+-- 
+1.7.0
+
