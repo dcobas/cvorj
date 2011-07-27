@@ -8,14 +8,17 @@ include /acc/dsc/src/co/Make.auto
 DRIVER = ctc
 DRIVER_NAME = "$(DRIVER)"
 LIBNAME = lib$(DRIVER)
+USERLIB = lib$(DRIVER)user
 
 COMPILE_TIME = $(shell date +%s)
 CFLAGS= -g -Wall -I. -I ../../driver
 CFLAGS += -I /acc/local/$(CPU)/include/
 CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
-MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
+MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so \
+	$(USERLIB).$(CPU).a $(USERLIB).$(CPU).so
 MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
+USERLIBOBJS = $(USERLIB).$(CPU).o
 ENCORELIBS = libencore.$(CPU).a
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
@@ -36,8 +39,11 @@ $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
-$(LIBNAME).$(CPU).so: $(MODLIBOBJS)
-	-$(RM) $@
+$(USERLIB).$(CPU).o: libctcuser.c libctcuser.h
+$(USERLIB).$(CPU).a: $(USERLIBOBJS)
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
+$(USERLIB).$(CPU).so: $(USERLIBOBJS)
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
 lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
@@ -46,6 +52,6 @@ lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
 libencore.$(CPU).o: libencore.c libencore.h
 libencore.$(CPU).a: libencore.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
 libencore.$(CPU).so: libencore.$(CPU).o
-	-$(RM) $@
 	$(CC) $(CFLAGS) -o $@ -shared $^

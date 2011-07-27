@@ -1,56 +1,18 @@
-/**
- * @file CtcUserDefinedAccess.h
- *
- * @brief CTC library header.
- *
- * @author Yury GEORGIEVSKIY. CERN BE/CO
- *
- * @date Created on 04/03/2009
- *
- * Function declarations and needed definitions are here.
- *
- * @version 2.0  ygeorgie  04/03/2009  1. Fix ctc_getClock[1/2] functions.
- *                                     2. Add ctc_getChannelStatus() function.
- *                                     3. Generate DOXYGEN docs for the lib.
- */
-#ifndef _CTC_USER_DEFINED_ACCESS_H_INCLUDE_
-#define _CTC_USER_DEFINED_ACCESS_H_INCLUDE_
+#ifndef _LIBCTCUSER_H
+#define _LIBCTCUSER_H
 
-#include <dg/dal.h>
-#include <user/CtcDefinitions.h>
+#include <libencore.h>
 
-/* OK and SYSERR are from 'kernel.h' */
-#ifndef OK
-#define OK 0
-#endif
+#define	HANDLE	encore_handle
 
-#ifndef SYSERR
-#define SYSERR -1
-#endif
+typedef struct _CTC_config_reg {
+  int cr_ext_start;
+  int cr_cntr1_clk;
+  int cr_cntr2_clk;
+  int cr_mode;
+  int cr_direction;
+} ctc_cfg_reg_t;
 
-/*! @name library errors */
-//@{
-typedef enum _tagCTC_UDA_ERR {
-	CTC_CH_OUT_OF_RANGE = 100, //!< input/output channel out of range
-	CTC_VAL_OUT_OF_RANGE,      //!< value out-of-range
-	CTC_ERR,                   //!< internal lib error
-	CTC_DAL_ERR                //!< DAL error occurs
-} ctc_uda_err;
-//@}
-
-static inline long IS_CTC_ERR(const void *ptr)
-{
-  return ((WITHIN_RANGE(CTC_CH_OUT_OF_RANGE, (unsigned long)ptr, CTC_DAL_ERR))?1:0);
-}
-
-static inline long PTR_CTC_ERR(const void *ptr)
-{
-  return (long) ptr;
-}
-
-/** @defgroup ctclib CTC library API
- *@{
- */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -83,6 +45,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-//@} end of group
 
-#endif /* _CTC_USER_DEFINED_ACCESS_H_INCLUDE_ */
+#endif /* _LIBCTCUSER_H */
