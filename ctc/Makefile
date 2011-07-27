@@ -18,8 +18,8 @@ CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so \
 	$(USERLIB).$(CPU).a $(USERLIB).$(CPU).so
 MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
-USERLIBOBJS = $(USERLIB).$(CPU).o
-ENCORELIBS = libencore.$(CPU).a
+USERLIBOBJS = $(USERLIB).$(CPU).o libencore.$(CPU).a
+ENCORELIBS = libencore.$(CPU).a libencore.$(CPU).so
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
