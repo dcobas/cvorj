@@ -1,0 +1,291 @@
+
+/**
+ * @file CtcUserDefinedAccess.c
+ *
+ * @brief CTC library.
+ *
+ * @author Yury GEORGIEVSKIY. CERN BE/CO
+ *
+ * @date Created on 04/03/2009
+ *
+ * <long description>
+ *
+ * @version 2.0  ygeorgie  04/03/2009\n
+ *                   1. Fix ctc_getClock[1/2] functions.\n
+ *                   2. Add ctc_getChannelStatus() function.\n
+ *                   3. Generate DOXYGEN docs for the lib.\n
+ *
+ * @version 1.0  ygeorgie  03/04/2008\n Creation date.
+ */
+/** @mainpage CTC Library Index Page
+ *
+ * @section Introduction
+ *
+ * Here you will find @b CTC library API descripiton.\n
+ * Don't forget that you also can use @b DAL library to communicate with the
+ * module.\n
+ * @b CTC library is using @b DAL library to access the hardware.
+ *
+ * @section library_sec Library.
+ *
+ * @ref ctclib
+ *
+ * @subsection ctcapifunc API functions.
+ * @subsection ctcliberr  Library error codes.
+ */
+/**
+ * @brief Get external start of channel in question.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - [1, 40] external start channel
+ *
+ * @return 0                    - on success
+ * @return < 0 			- on error
+ */
+/**
+ * @brief set external start for a channel
+ *
+ * @param h      - encore handle
+ * @param chan   - output channel. [1, 8] range
+ * @param newVal - input channel. [1, 40] range.
+ *                 If zero - then module resetting requested.
+ *                 Will be set to default external trigger (i.e. input channel)
+ *                 namely the first one.
+ *
+ * @return 0                   - on success
+ * 
+ */
+/**
+ * @brief Returns current clock setting for the first counter.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @note Real register value will be interpreted here, since the clock setting,
+ *       as seen by the user is (reg_value + 1), i.e.\n
+ *       0 - clock1\n
+ *       1 - clock2 etc...
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+
+/**
+ * @brief Set external clock for the first counter.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param newVal - value to set [1, 6]
+ *
+ * @note Provided user value will be interpreted, since the the real clock
+ *       setting is (user_value - 1), i.e.\n
+ *       0 - clock1\n
+ *       1 - clock2 etc...
+ *
+ * @return 0                    - on success
+ * @return -CTC_CH_OUT_OF_RANGE  - input/output chan out of range
+ * @return -CTC_VAL_OUT_OF_RANGE - requested external clock is out-of-range
+ * @return -CTC_DAL_ERR          - DAL return error
+ */
+/**
+ * @brief Returns current clock setting for the second counter.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @note Real register value will be interpreted here, since the clock setting,
+ *       as seen by the user is (reg_value + 1), i.e.\n
+ *       0 - clock1\n
+ *       1 - clock2 etc...
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief Set external clock for the second counter.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param newVal - value to set [1, 6]
+ *
+ * @note Provided user value will be interpreted, since the the real clock
+ *       setting is (user_value - 1), i.e.\n
+ *       0 - clock1\n
+ *       1 - clock2 etc...
+ *
+ * @return 0                    - on success
+ * @return -CTC_CH_OUT_OF_RANGE  - input/output chan out of range
+ * @return -CTC_VAL_OUT_OF_RANGE - requested external clock is out-of-range
+ * @return -CTC_DAL_ERR          - DAL return error
+ */
+/**
+ * @brief
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param newVal - value to set
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param newVal - value to set
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief Get current value of the 1'st counter.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief Get current value of the 2'nd counter.
+ *
+ * @param h      - encore handle
+ * @param chan   - [1, 8] range
+ * @param res    - reg val will be put here
+ *
+ * @return 0                   - on success
+ * @return -EIO		       - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief Obtain module status register (get current Hardware version).
+ *
+ * @param h      - encore handle
+ * @param res    - reg val will be put here
+ *
+ * @return 0           - on success
+ * @return -CTC_DAL_ERR - DAL return error
+ */
+/*
+   RESET register bit layout:
+
+   Only 9 LSB are taken into account [0 - 8].
+   First one is to reset the whole module.
+   All the rest are to enable/disable channels. bit 1 - channel 8,
+   bit 2 - channel 7 ... bit 8 - channel 1
+
+   bit:    8     7     6     5     4     3     2     1        0
+        +-----+-----+-----+-----+-----+-----+-----+-----+-----------+
+        | ch1 | ch2 | ch3 | ch4 | ch5 | ch6 | ch7 | ch8 | mod reset |
+        +-----+-----+-----+-----+-----+-----+-----+-----+-----------+
+
+   To enable the channel  - write 1 to appropriate bit.
+   To disable the channel - write 0 to appropriate bit.
+   To reset the module    - write 1 to the bit zero.
+ */
+
+/**
+ * @brief Reset module and disable all the channels.
+ *
+ * @param h      - encore handle
+ *
+ * @return 0       - on success
+ * @return -EIO    - I/O error
+ */
+/**
+ * @brief Set channel <-> ext_start mapping and
+ * enable specified channel.
+ *
+ * @param h         - encore handle
+ * @param ch        - channel.       [1,  8] range
+ * @param ext_start - input channel. [1, 40] range
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ * @return -CTC_ERR             - ctc lib function error
+ */
+/**
+ * @brief Disable specified output channel and unset input <-> output channel
+ *        mapping.
+ *
+ * @param h       - encore handle
+ * @param outChan - output channel to disable. [1, 8] range
+ *
+ * To disable channel, we should write 0 to the corresponding bit of the reset
+ * register. Moreover, current external start (input channel) is set to zero.
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * @brief To get channel configuration data.
+ *
+ * @param h       - encore handle
+ * @param outChan - output channel to exploit. [1, 8] range (0 for all of them)
+ *
+ * @return 0                   - on success
+ * @return -CTC_CH_OUT_OF_RANGE - input/output chan out of range
+ * @return -CTC_DAL_ERR         - DAL return error
+ */
+/**
+ * ctc_getChannelStatus - Get current status of 8 output channels.
+ *
+ * @param h       - encore handle
+ * @param outChan - massive to store current status in. Must be 8 integers long.
+ *
+ * Output channel can be either enabled or disabled.\n
+ * Each value in @outChan represents current status of the output channel.\n
+ * (outChan[0] - for channel 1, outChan[7] - for channel 8, etc...)\n
+ * If channel value is 0 - output channel is disabled.\n
+ * If channle value is one of [1 - 40] - output channel is active and
+ * connected to the corresponding input channel.
+ *
+ * @return 0           - all OK.
+ * @return -CTC_DAL_ERR - DAL return error.
+ */
+
