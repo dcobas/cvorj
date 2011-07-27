@@ -5,7 +5,7 @@
 
 #define CTC_CHANNELS		8
 #define CTC_EXT_STARTS		40
-#define CTC_CLOCKS		6
+#define CTC_CLOCKS			6
 
 #define CTC_CHANNEL0		0x08
 #define	CTC_CHANNEL_SIZE	0x18
@@ -101,7 +101,7 @@ int ctc_setInputChan(HANDLE h, int ch, unsigned long ext_start)
 	if (cc < 0)
 		return -EIO;
 	config &= ~EXT_START;
-	config |= ((ext_start-1) << EXT_START_SHIFT);
+	config |= ((ext_start-1) << EXT_START_SHIFT) & EXT_START;
 	cc = ctc_set_channel_conf(h, ch, config);
 	if (cc < 0)
 		return -EIO;
@@ -134,7 +134,7 @@ int ctc_setClock1(HANDLE h, int ch, unsigned long ext_clock)
 		return -EINVAL;
 	ctc_get_channel_conf(h, ch, &conf);
 	conf &= ~CLOCK1;
-	conf |= ((ext_clock-1) & CLOCK1 << CLOCK1_SHIFT);
+	conf |= ((ext_clock-1) << CLOCK1_SHIFT) & CLOCK1;
 	ctc_set_channel_conf(h, ch, conf);
 
 	return 0;
@@ -148,7 +148,7 @@ int ctc_setClock2(HANDLE h, int ch, unsigned long ext_clock)
 		return -EINVAL;
 	ctc_get_channel_conf(h, ch, &conf);
 	conf &= ~CLOCK2;
-	conf |= ((ext_clock-1) & CLOCK2 << CLOCK2_SHIFT);
+	conf |= ((ext_clock-1) << CLOCK2_SHIFT) & CLOCK2;
 	ctc_set_channel_conf(h, ch, conf);
 
 	return 0;
