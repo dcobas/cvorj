@@ -35,14 +35,11 @@ clean:
 $(LIBNAME).$(CPU).o: $(SRCS)
 
 $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
-	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
 
 $(USERLIB).$(CPU).o: libctcuser.c libctcuser.h
 $(USERLIB).$(CPU).a: $(USERLIBOBJS)
 	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
 $(USERLIB).$(CPU).so: $(USERLIBOBJS)
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
@@ -52,6 +49,5 @@ lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
 libencore.$(CPU).o: libencore.c libencore.h
 libencore.$(CPU).a: libencore.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
 libencore.$(CPU).so: libencore.$(CPU).o
 	$(CC) $(CFLAGS) -o $@ -shared $^
