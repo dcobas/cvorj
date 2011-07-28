@@ -1,28 +1,45 @@
 #!/bin/sh
 
-# Generated automatically by encore at 2011-07-22 14:24:36.185198"
-echo "Installing CTC driver..."
+DEVICE_NAME=CTC
+TRANSFER=/etc/transfer.ref
+DRIVER_NAME=ctc
 
-INSMOD_ARGS=`awk -f transfer2insmod.awk CTC /etc/transfer.ref`
+# Generated automatically by encore at 2011-07-28 11:41:25.743289"
 
+OUTPUT=":"
+RUN=""
+while getopts hvnD:d:t: o
+do	case $o in
+	v)	OUTPUT="echo" ;;		# verbose
+	n)	RUN=":" ;;			# dry run
+	D)	DEVICE_NAME="$OPTARG" ;;
+	d)	DRIVER_NAME="$OPTARG" ;;
+	t)	TRANSFER="$OPTARG" ;;
+	[h?])	echo >&2 "usage: $0 [-?hvnb] [-D device] [-d driver] [-t transfer]"
+		exit ;;
+	esac
+done
+
+$OUTPUT "Installing $DEVICE_NAME driver..."
+INSMOD_ARGS=`awk -f transfer2insmod.awk $DEVICE_NAME $TRANSFER`
 if [ x"$INSMOD_ARGS" == x"" ] ; then
-    echo "No CTC declared in /etc/transfer.ref, exiting"
+    echo "No $DEVICE_NAME declared in $TRANSFER, exiting"
     exit 1
 fi
 
-INSMOD_CMD="insmod ctc.ko $INSMOD_ARGS"
-echo "installing ctc by insmod ctc $INSMOD_ARGS"
-sh -c "$INSMOD_CMD"
+INSMOD_CMD="insmod $DRIVER_NAME.ko $INSMOD_ARGS"
+$OUTPUT installing $DRIVER_NAME by $INSMOD_CMD
+sh -c "$RUN $INSMOD_CMD"
 
-MAJOR=`cat /proc/devices | awk '$2 == "ctc" {print $1}'`
+
+MAJOR=`cat /proc/devices | awk '$2 == "'"$DRIVER_NAME"'" {print $1}'`
 if [ -z "$MAJOR" ]; then
-	echo "driver ctc not installed!"
+	echo "driver $DRIVER_NAME not installed!"
 	exit 1
 fi
-
-MINORS=`awk '/^#\+#/ && $6 == "CTC" { printf("%s ", $7) }' /etc/transfer.ref`
-echo "creating device nodes for driver ctc, major $MAJOR, minors $MINORS"
+MINORS=`awk '/^#\+#/ && $6 == "'"$DEVICE_NAME"'" { printf("%s ", $7) }' $TRANSFER`
+$OUTPUT "creating device nodes for driver $DRIVER_NAME, major $MAJOR, minors $MINORS"
 for MINOR in $MINORS; do
-    rm -f /dev/ctc.$MINOR
-    mknod /dev/ctc.$MINOR c $MAJOR $MINOR
+    sh -c "$RUN rm -f /dev/ctc.$MINOR"
+    sh -c "$RUN mknod /dev/ctc.$MINOR c $MAJOR $MINOR"
 done
