@@ -16,7 +16,7 @@
 #include "ctc_regs.c"
 #endif
 
-static char *gendata = "encore_gendata:""dcobas|Juan David Gonzalez Cobas|2011-07-22 14:24:36.185198|libencore-9-g3ac8cfb";
+static char *gendata = "encore_gendata:""dcobas|Juan David Gonzalez Cobas|2011-07-28 11:41:25.743289|libencore-14-g0475261";
 
 
 #define PFX DRIVER_NAME ": "
@@ -167,7 +167,8 @@ int register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
 {
 	dev->isr_source_address = dev->maps[0].kernel_va + dev->isrc;
-	printk("SourceRegister:0x%p", dev->isr_source_address);
+	/* printk(KERN_INFO PFX "SourceRegister:0x%p\n", dev->isr_source_address);
+	*/
 }
 
 static int check_module_params(void)
