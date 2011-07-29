@@ -497,6 +497,7 @@ class TestProgram(cmd.Cmd):
         self.device = 'CTC'
         self.devname = '/dev/ctc.%d' % lun
         self.lun = lun
+        self.prompt = 'ctc:%d> ' % self.lun
 
     def do_close(self, arg):
         """close currently open file descriptor"""
@@ -504,6 +505,7 @@ class TestProgram(cmd.Cmd):
             encore.encore_close(self.h)
         self.h = None
         self.fd = None
+        self.prompt = 'ctc> '
 
     def do_version(self, arg):
         pass
@@ -743,11 +745,11 @@ class TestProgram(cmd.Cmd):
 
 if __name__ == '__main__':
     tp = TestProgram()
-    try:
-        if sys.argv[1]:
+    tp.prompt = 'ctc> '
+    if len(sys.argv) > 1:
+        try:
             lun = int(sys.argv[1])
             tp.do_open(lun)
-    except:
-        print 'usage: %s [LUN]' % sys.argv[0]
-    tp.prompt = 'vmeio> '
+        except:
+            print 'usage: %s [LUN]' % sys.argv[0]
     tp.cmdloop()
