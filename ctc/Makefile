@@ -29,8 +29,8 @@ modules:
 	cp Module.symvers.vmebus Module.symvers
 	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
 clean:
+	make -C $(KERNELSRC) M=$(PWD) clean
 	rm -f *.o *.a *.so
-	make -C $(KERNELSRC) M=`pwd` clean
 
 $(LIBNAME).$(CPU).o: $(SRCS)
 
