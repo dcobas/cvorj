@@ -1,6 +1,10 @@
 #ifndef _LIBCTCUSER_H
 #define _LIBCTCUSER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <libencore.h>
 
 #define	HANDLE	encore_handle
@@ -12,10 +16,6 @@ typedef struct _CTC_config_reg {
   int cr_mode;
   int cr_direction;
 } ctc_cfg_reg_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	int ctc_setInputChan(HANDLE handle, int chan, unsigned long newVal);
 
