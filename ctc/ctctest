@@ -1,0 +1,753 @@
+#!   /usr/bin/env	python
+#    coding: utf8
+#    vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
+from ctypes import *
+from subprocess import Popen
+import shlex
+import sys
+import os
+import re
+import cmd
+import readline
+import struct
+import csv
+
+class vmeio_read_buf_s(Structure):
+    _fields_ = [
+        ('logical_unit', 	c_int),
+        ('interrupt_mask', 	c_int),
+        ('interrupt_count', 	c_int),
+    ]
+
+class vme_mapping(Structure):
+    _fields_ = [
+	('window_num', 		c_int),
+	('kernel_va', 		c_void_p),
+	('user_va', 		c_void_p),
+	('fd',  		c_int),
+	('window_enabled',	c_int),
+	('data_width', 		c_int),
+	('am', 	        	c_int),
+	('read_prefetch_enabled',	c_int),
+	('read_prefetch_size', 	c_int),
+	('v2esst_mode', 	c_int),
+	('bcast_select', 	c_int),
+	('pci_addru', 		c_int),
+	('pci_addrl', 		c_int),
+	('sizeu', 		c_int),
+	('sizel', 		c_int),
+	('vme_addru', 		c_int),
+	('vme_addrl', 		c_int),
+    ]
+
+class vmeio_get_mapping(Structure):
+    _fields_ = [
+    ('mapnum', c_int),
+    ('map', vme_mapping),
+    ]
+
+vmeioMAX_BUF = 8192
+
+class vmeio_riob(Structure):
+    _fields_ = [
+    ('mapnum', 		c_int),	   	# Mapping number 1..2
+    ('offset', 		c_int),	   	# Byte offset in map
+    ('wsize', 		c_int),	   	# The number of bytes to read
+    ('buffer', 		c_void_p),	# Pointer to data area
+    ('data_width', 	c_int),	        # optional data width, 0 if default
+    ]
+
+class vmeio_dma_op(Structure):
+    _fields_ = [
+    ('am', 		c_int),		# address modifier, defines transfer mode
+    ('data_width', 	c_int),		# transfer data width
+    ('address', 	c_int),		# vme address of start transfer
+    ('byte_length', 	c_int),		# transfer length in bytes
+    ('buffer', 		c_void_p),	# pointer to transfer to/from
+    ('direction', 	c_int),		# from/to device
+    ]
+
+class encore_reginfo(Structure):
+    _fields_ = [
+	('name',		c_char*17),
+	('rwmode',		c_char*5),
+	('block',		c_int),
+	('block_address_space',	c_int),
+	('block_offset',	c_int),
+	('register_offset',	c_int),
+	('offset',		c_int),
+	('wordsize',		c_char*7),
+	('depth',		c_int),
+	('description',		c_char*81),
+	('data_width',		c_int),
+    ]
+
+    # data width is ignored
+    field_format = ('%-16s %4s %3d %3d '
+            '%8x %8x %8x %6s %8x %s')
+    @classmethod
+    def pprint_header(cls):
+        return ('register name    mode blk  as '
+        'blk_offs reg_offs totl_off  wdsiz    depth description')
+
+    def pprint(self):
+        """pretty print a register
+        """
+        tuple = ()
+        for field in self._fields_[:-1]:
+            name = field[0]
+            value = self.__getattribute__(name)
+            tuple = tuple + (value, )
+        return self.field_format % tuple
+
+    def from_tuple(self, t):
+        for i in range(len(self._fields_)):
+            attrname = self._fields_[i][0]
+            value = t[i]
+            if self._fields_[i][1] == c_int:
+                value = int(value)
+            setattr(self, attrname, value)
+        return self
+
+class encore_handle(Structure):
+    _fields_ = [
+        ('fd',        c_int),
+        ('dmafd',     c_int),
+        ('nregs',     c_int),
+        ('reginfo',   POINTER(encore_reginfo)),
+    ]
+
+class ctc_cfg_reg_t(Structure):
+    _fields_ = [
+        ('ext_start',	c_int),
+        ('clk1',	c_int),
+        ('clk2',	c_int),
+        ('mode',	c_int),
+        ('direction',	c_int),
+    ]
+
+# ioctls ever used in vmeio
+
+VMEIO_SET_DEBUG		= 0x40045601
+VMEIO_GET_DEBUG		= 0x80045602
+VMEIO_GET_VERSION	= 0x80045603
+VMEIO_SET_TIMEOUT	= 0x40045604
+VMEIO_GET_TIMEOUT	= 0x80045605
+VMEIO_GET_DEVICE	= 0x80345606
+VMEIO_RAW_READ		= 0xc0145607	# vemio_riob
+VMEIO_RAW_WRITE		= 0xc0145608	# vemio_riob
+VMEIO_RAW_READ_DMA	= 0xc0145609	# vemio_riob
+VMEIO_RAW_WRITE_DMA	= 0xc014560a	# vemio_riob
+
+VMEIO_SET_DEVICE	= 0x40345606
+VMEIO_READ_DMA		= 0x4018560c	# vmeio_dma_op
+VMEIO_WRITE_DMA		= 0x4018560d	# vmeio_dma_op
+VMEIO_GET_MAPPING	= 0xc044560e	# vme_mapping
+
+VMEIO_GET_NREGS		= 0x8004560e
+VMEIO_GET_REGINFO	= 0x40045610	# void *
+
+libc = CDLL('/lib/libc.so.6')
+lctc = CDLL('./libctcuser.L865.so')
+encore = CDLL('./libencore.L865.so')
+
+data_width_format = {
+    32 : 'I',
+    16 : 'H',
+     8 : 'B',
+}
+
+wordsize_to_data_width = {
+    'char'  :  8,
+    'short' : 16,
+    'long'  : 32,
+}
+
+device_name = '/dev/fake_sis3320_250.%d'
+re_devname = r'^[a-z][a-z0-9_]*$'
+re_devnode = r'^/dev/([a-z][a-z0-9_]*).([0-9]+)$'
+
+def reg_data(fd):
+    """get register data from a file descriptor
+    """
+
+    nregs = c_int()
+    cc = libc.ioctl(fd, VMEIO_GET_NREGS, byref(nregs))
+    nregs = nregs.value
+    if cc != 0:
+        return None
+
+    regdata = (nregs * encore_reginfo)()
+    cc = libc.ioctl(fd, VMEIO_GET_REGINFO, byref(pointer(regdata)))
+    if cc != 0:
+        return None
+
+    return regdata
+
+def read_register(fd, reg):
+    """read value of register described in reg
+    """
+
+    depth = 1
+    if reg.depth > 1: depth = reg.depth
+
+    data_width = wordsize_to_data_width[reg.wordsize]
+    byte_size = data_width/8 * depth
+    buffer = create_string_buffer(byte_size+1)
+
+    riob = vmeio_riob()
+    riob.mapnum = reg.block_address_space
+    riob.offset = reg.offset
+    riob.buffer = addressof(buffer)
+    riob.wsize = depth
+
+    cc = libc.ioctl(fd, VMEIO_RAW_READ, byref(riob))
+    if cc != 0:
+        print 'Failed RAW_READ %d' % cc
+        return None
+    else:
+        format = depth * data_width_format[data_width]
+        return struct.unpack(format, buffer[:-1])
+
+def write_register(fd, reg, data):
+    """write value of register described in reg
+    """
+
+    depth = 1
+    if reg.depth > 1: depth = reg.depth
+
+    data_width = wordsize_to_data_width[reg.wordsize]
+    byte_size = data_width/8 * depth
+    format = depth * data_width_format[data_width]
+    buffer = struct.pack(format, *data)
+    buffer = create_string_buffer(buffer)
+
+    riob = vmeio_riob()
+    riob.mapnum = reg.block_address_space
+    riob.offset = reg.offset
+    riob.buffer = addressof(buffer)
+    riob.wsize = depth
+
+    cc = libc.ioctl(fd, VMEIO_RAW_WRITE, byref(riob))
+    if cc != 0:
+        print 'Failed RAW_WRITE %d' % cc
+        return None
+    else:
+        return True
+
+
+class TestProgram(cmd.Cmd):
+
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.fd = None
+        self.lun = 0
+        self.device = None
+        self.devname = None
+        self.fname = None
+        self.regdata = None
+
+        self.do_q    = self.do_quit
+        self.do_exit = self.do_quit
+        self.do_h    = self.do_help
+
+    def emptyline(self):
+        return
+
+    def do_raw_read(self, arg):
+        # jdgc: FIX!!!
+        return
+        """raw_read mapnum offset nitems
+
+        Read nitems words at offset of mapping mapnum
+        """
+        args = arg.split()
+        if len(args) != 3:
+            print 'usage: raw_read mapnum offset items'
+            return
+        try:
+            mapnum, offset, items = map(int, args)
+        except:
+            print 'mapnum, offset and items must be integers'
+            return
+        if not self.fd:
+            print 'open a lun first'
+            return
+        if mapnum not in [ 1, 2 ]:
+            print 'mapnum must be 1 or 2'
+            return
+
+        data_width =  self.data_width[mapnum-1]
+        byte_width = data_width / 8
+        buf = create_string_buffer(byte_width*items+1)
+        s = vmeio_riob(mapnum=mapnum,
+            offset=offset, wsize=items, buffer=addressof(buf), data_width=0)
+        if libc.ioctl(self.fd, VMEIO_RAW_READ, byref(s)) < 0:
+            print 'VMEIO_RAW_READ failed!'
+            return
+        format = items * data_width_format[data_width]
+        val = struct.unpack(format, buf[:-1])
+
+        for i in range(items):
+            fmt = '%%08x: 0x%%0%dx' % (byte_width*2)
+            print fmt % (offset, val[i])
+            offset += byte_width
+
+    def do_params(self, arg):
+        """params mapnum        show device parameters
+        """
+
+        if not arg:
+            self.do_params(1)
+            self.do_params(2)
+            return
+
+        try:
+            mapnum = int(arg)
+        except:
+            print 'please provide a valid mapnum'
+            return
+
+        s = vmeio_get_mapping(mapnum=mapnum, map=vme_mapping())
+        if 0 > libc.ioctl(self.fd, VMEIO_GET_MAPPING, byref(s)):
+            print 'VMEIO_GET_MAPPING failed'
+            return
+        print 'mapping = %d, data_width = %d, size = 0x%x, am = 0x%x' % (
+            mapnum,
+            s.map.data_width,
+            s.map.sizel,
+            s.map.am, )
+
+    def do_read(self, arg):
+        """read a register given by name
+        """
+
+        regdata = reg_data(self.fd)     # cache this
+        found = [ reg for reg in regdata if reg.name == arg ]
+        if not found:
+            print 'no register ' + arg
+            return
+        found = found[0]
+        regval = read_register(self.fd, found)
+        if not regval:
+            print 'could not read register ' + arg
+            return
+
+        data_width = wordsize_to_data_width[found.wordsize]
+        format = '0x%08x: ' + ('0x%%0%dx' % (data_width/4))
+        for i, word in enumerate(regval):
+            offset = found.offset + i * data_width
+            print format % (i, word)
+
+    def do_write(self, arg):
+        """write a register by name
+        """
+
+        regdata = reg_data(self.fd)     # cache this
+        try:
+            regname, value = arg.split()
+            value = int(value, 16)
+        except ValueError:
+            print 'Invalid arguments'
+            return
+        found = [ reg for reg in regdata if reg.name == regname ]
+        if not found:
+            return
+        found = found[0]
+        if not write_register(self.fd, found, [value]):
+            print 'could not write register'
+            return
+
+
+    def do_regdata(self, arg):
+        """regdata      show register attributes
+        """
+
+        if not arg:
+            self.regdata = reg_data(self.fd)
+        else:
+            try:
+                csvfile = csv.reader(file(arg))
+                self.regdata = [ encore_reginfo().from_tuple(t) for t in csvfile ]
+            except IOError:
+                print 'error: cannot open', arg
+                return
+        if not self.regdata:
+            print 'error: no register data found'
+            return
+        print encore_reginfo.pprint_header()
+        for reg in self.regdata:
+            print reg.pprint()
+
+    def do_quit(self, arg):
+        return 1
+    def do_EOF(self, arg):
+        print
+        return 1
+
+    def do_shell(self, arg):
+        """open a subshell"""
+        if arg:
+            args = shlex.split(arg)
+        else:
+            args = 'sh'
+        try:
+            p = Popen(args)
+            p.wait()
+        except OSError:
+            print 'error: cannot execute', arg
+    do_sh = do_shell
+
+    def do_cd(self, arg):
+        if not arg:
+            print os.getcwd()
+            return
+        try:
+            os.chdir(arg)
+        except OSError:
+            print 'error: cannot chdir to', arg
+
+    def devnode(self):
+        try:
+            self.devname = '/dev/%s.%d' % (self.device, self.lun)
+        except:
+            print 'error: cannot set device node'
+            return
+
+    def do_lun(self, arg):
+        print self.device, self.lun,
+        print 'is',
+        print self.devname,
+        print 'open with',
+        print 'fd', self.fd
+
+    def do_open(self, arg):
+        """open a device node
+
+        syntax: open [device] [lun]
+
+        With no arguments, open shows the currently open device,
+        or a diagnostic if there is none
+
+        With more arguments, one can specify the device name and/or the
+        lun. The lun defaults to 0. The device name defaults to the
+        latest specified one"""
+
+        if not arg:
+            if self.fd > 0:
+                print self.device, self.lun,
+                print self.devname,
+                print 'fd', self.fd
+            else:
+                print 'no device open'
+            return
+        args = arg.split()
+        if len(args) >= 2:
+            if not re.match(re_devname, args[0]):
+                print 'error: invalid device name', args[0]
+            else:
+                self.device = args[0]
+            try:
+                self.lun = int(args[1])
+            except:
+                print 'error: invalid lun', args[1]
+            self.devnode()
+        elif len(args) == 1 and arg[0] == '/':
+            try:
+                m = re.match(re_devnode, arg)
+                self.device = m.group(1)
+                self.lun    = int(m.group(2))
+                self.devname = arg
+            except:
+                print 'error: invalid device name', arg
+                return
+        elif re.match(re_devname, arg):
+            self.device = arg
+            self.lun = 0
+            self.devnode()
+        else:
+            try:
+                self.lun = int(arg)
+                self.devnode()
+            except:
+                print 'error: invalid argument', arg
+                return
+        fd = libc.open(self.devname, os.O_RDWR)
+        if fd < 0:
+            print 'error: cannot open', self.devname
+            return
+        self.fd = fd
+        print 'open', self.devname, 'with fd', self.fd
+
+    def do_open(self, arg):
+        """open LUN"""
+
+        try:
+            lun = int(arg)
+        except ValueError, e:
+            print 'invalid lun argument: ', e.args[0]
+            return
+        self.h = encore.encore_open('ctc', lun)
+        if not self.h:
+            print 'cannot open CTC number', lun
+            return
+        self.h = cast(self.h, POINTER(encore_handle))
+        self.fd = self.h.contents.fd
+        self.device = 'CTC'
+        self.devname = '/dev/ctc.%d' % lun
+        self.lun = lun
+
+    def do_close(self, arg):
+        """close currently open file descriptor"""
+        if self.fd > 0:
+            encore.encore_close(self.h)
+        self.h = None
+        self.fd = None
+
+    def do_version(self, arg):
+        pass
+    def do_timeout(self, arg):
+        pass
+    def do_display(self, arg):
+        pass
+
+    def do_set_input(self, arg):
+        """set_input channel ext_start"""
+
+        try:
+            channel, ext_start = map(int, arg.split())
+        except ValueError, e:
+            print 'invalid arguments: ', e.args[0]
+            return
+        lctc.ctc_setInputChan(self.h, channel, ext_start)
+
+    def do_get_channel_config(self, arg):
+        """get_channel_config [channel...]"""
+
+        try:
+            channels = arg.split()
+            if len(channels) == 0:
+                channels = range(1,9)
+            else:
+                channels = map(int, channels)
+        except ValueError, e:
+            print 'invalid arguments: ', e.args[0]
+            return
+
+        for channel in channels:
+            conf = lctc.ctc_getChanConf(self.h, channel)
+            if not conf:
+                print 'could not get channel %d config' % channel
+            conf = cast(conf, POINTER(ctc_cfg_reg_t))
+            print 'ch%d:' % channel,
+            print 'ext_start %d' % conf.contents.ext_start,
+            print 'clk1 %d' % conf.contents.clk1,
+            print 'clk2 %d' % conf.contents.clk2,
+            print 'mode %d' % conf.contents.mode,
+            print 'direction %d' % conf.contents.direction,
+            print
+
+    def do_get_clocks(self, arg):
+        """get_clocks channel"""
+
+        try:
+            channels = arg.split()
+            if len(channels) == 0:
+                channels = range(1,9)
+            else:
+                channels = map(int, channels)
+        except ValueError, e:
+            print 'invalid arguments: ', e.args[0]
+            return
+        clk1 = c_int(-1)
+        clk2 = c_int(-1)
+        for channel in channels:
+            ret1 = lctc.ctc_getClock1(self.h, channel, byref(clk1))
+            ret2 = lctc.ctc_getClock2(self.h, channel, byref(clk2))
+            if ret1 or ret2:
+                print 'invalid channel', channel
+                continue
+            print 'ch%d' % channel,
+            print 'clk1: %d' % clk1.value,
+            print 'clk2: %d' % clk2.value
+
+    def do_set_clock(self, arg):
+        """set_clock clock [1-2] channel [1-40] ext_clock [1-6]"""
+
+        try:
+            clock, channel, ext_clock = map(int, arg.split())
+            if not clock in range(1, 3):
+                raise ValueError('bad clock number')
+            if not channel in range(1,9):
+                raise ValueError('bad channel number')
+            if not ext_clock in range(1, 7):
+                raise ValueError('bad external clock number')
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+        if clock == 1:
+            ret = lctc.ctc_setClock1(self.h, channel, ext_clock)
+        else:
+            ret = lctc.ctc_setClock2(self.h, channel, ext_clock)
+        if ret:
+            print ret
+            print 'could not set clock %d for channel %d to %d' % (
+                clock, channel, ext_clock)
+            return
+
+    def do_get_clock_ticks(self, arg):
+        """get_clock_ticks channel"""
+
+        try:
+            if not arg:
+                channels = range(1, 9)
+            else:
+                channels = map(int, arg.split())
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+
+        clk1 = c_int(-1)
+        clk2 = c_int(-1)
+        for channel in channels:
+            ret1 = lctc.ctc_getClock1Tick(self.h, channel, byref(clk1))
+            ret2 = lctc.ctc_getClock2Tick(self.h, channel, byref(clk2))
+            if ret1 or ret2:
+                print 'invalid channel', channel
+                continue
+            print 'ch%d:' % channel,
+            print 'clk1ticks: %6d' % clk1.value,
+            print 'clk2ticks: %6d' % clk2.value
+
+    def do_set_clock_ticks(self, arg):
+        """set_clock clock [1-2] channel [1-8] ticks"""
+
+        try:
+            clock, channel, ticks = map(lambda x: int(x, 0), arg.split())
+            if not clock in range(1, 3):
+                raise ValueError('bad clock number')
+            if not channel in range(1,9):
+                raise ValueError('bad channel number')
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+        if clock == 1:
+            ret = lctc.ctc_setClock1Tick(self.h, channel, ticks)
+        else:
+            ret = lctc.ctc_setClock2Tick(self.h, channel, ticks)
+        if ret:
+            print ret
+            print 'could not set clock %d for channel %d to %d' % (
+                clock, channel, ext_clock)
+            return
+
+    def do_get_output_counter(self, arg):
+        """get_output_counter channel"""
+
+        try:
+            if not arg:
+                channels = range(1,9)
+            else:
+                channels = map(int, arg.split())
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+
+        for channel in channels:
+            counter = c_uint(-1)
+            ret = lctc.ctc_getOutPutCounter(self.h, channel, counter)
+            if ret:
+                print 'could not get counter'
+                return
+            print 'ch%d:' % channel,
+            print 'counter 0x%08x (%d)' % (counter.value, counter.value)
+
+    def do_version(self, arg):
+        version = c_uint(-1)
+        ret = lctc.ctc_getModuleStatus(self.h, byref(version))
+        print 'version: 0x%x' % version.value
+
+    def do_get_counters(self, arg):
+
+        try:
+            if not arg:
+                channels = range(1,9)
+            else:
+                channels = map(int, arg.split())
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+        for channel in channels:
+            cntr1 = c_uint(-1)
+            cntr2 = c_uint(-1)
+            ret1 = lctc.ctc_getCntr1CurVal(self.h, channel, byref(cntr1)) 
+            ret2 = lctc.ctc_getCntr2CurVal(self.h, channel, byref(cntr2)) 
+            if ret1 or ret2:
+                print 'could not get counters for channel', channel
+                continue
+            print 'ch%d:' % channel,
+            print 'counter1: 0x%08x (%d),' % (cntr1.value,cntr1.value),
+            print 'counter2: 0x%08x (%d),' % (cntr2.value,cntr2.value)
+
+    def do_enable(self, arg):
+
+        try:
+            if not arg:
+                channels = range(1,9)
+            else:
+                channels = map(int, arg.split())
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+
+        for channel in channels:
+            ret = lctc.ctc_enableChannel(self.h, channel)
+            if ret:
+                print 'could not enable channel', channel
+                continue
+
+    def do_disable(self, arg):
+
+        try:
+            if not arg:
+                channels = range(1,9)
+            else:
+                channels = map(int, arg.split())
+        except ValueError, e:
+            print 'invalid arguments:', e.args[0]
+            return
+
+        for channel in channels:
+            ret = lctc.ctc_disableChannel(self.h, channel)
+            if ret:
+                print 'could not disable channel', channel
+                continue
+
+    def do_get_channel_status(self, arg):
+
+        status = (8 * c_int)()
+        ret = lctc.ctc_getChannelStatus(self.h, status)
+        if ret:
+            print 'could not get channel status'
+            return
+        for channel in range(1,9):
+            print 'channel %d:' % channel, 
+            s = status[channel-1] 
+            print s or 'disabled'
+
+    def do_reset_module(self, arg):
+
+        lctc.ctc_resetModule(self.h)
+        
+
+if __name__ == '__main__':
+    tp = TestProgram()
+    try:
+        if sys.argv[1]:
+            lun = int(sys.argv[1])
+            tp.do_open(lun)
+    except:
+        print 'usage: %s [LUN]' % sys.argv[0]
+    tp.prompt = 'vmeio> '
+    tp.cmdloop()
