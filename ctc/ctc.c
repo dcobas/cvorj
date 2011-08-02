@@ -8,6 +8,8 @@
 #include <asm/uaccess.h>
 #include <linux/fs.h>
 #include <linux/interrupt.h>
+#include <linux/time.h>
+#include <linux/timer.h>
 
 #include "vmebus.h"
 #include "vmeio.h"
@@ -16,7 +18,7 @@
 #include "ctc_regs.c"
 #endif
 
-static char *gendata = "encore_gendata:""dcobas|Juan David Gonzalez Cobas|2011-07-28 11:41:25.743289|libencore-14-g0475261";
+static char *gendata = "driver.encore|""gen-by=dcobas|gen-date=11.08.02@09:30:49|encore-version=libencore-7-g19438cc";
 
 
 #define PFX DRIVER_NAME ": "
@@ -261,11 +263,51 @@ out_map1:
 
 }
 
+/* ACET logging heartbeat */
+#define ACET_MSG_LEN	256
+
+static int acet_period;
+static struct timer_list acet_timer;
+static char acet_signature[ACET_MSG_LEN];
+
+static int acet_heartbeat;
+module_param(acet_heartbeat, int, S_IRUGO);
+MODULE_PARM_DESC(acet_heartbeat, "seconds between ACET logs");
+
+static void make_acet_signature(void)
+{
+	/*
+	struct tm *lt = &load_time;
+
+	time_to_tm(get_seconds(), 0, lt);
+	snprintf(acet_load_date, 32,
+	"load-date=%4d:%2d:%2d@%2d:%2d%2d",
+		lt->tm_year + 1900, lt->tm_month + 1, lt->tm_day,
+		lt->tm_hour, lt->tm_min, lt->tm_sec);
+	*/
+	snprintf(acet_signature, ACET_MSG_LEN, "%s|load_time=0x%lx",
+			gendata, get_seconds());
+}
+
+static void acet_log(unsigned long data)
+{
+	printk(KERN_ERR PFX "%s|seconds=0x%0lx\n",
+				acet_signature, get_seconds());
+	mod_timer(&acet_timer, acet_period + jiffies);
+}
+
+static void init_acet_timer(int period)
+{
+	setup_timer(&acet_timer, acet_log, 0);
+	acet_period = period * HZ;
+	mod_timer(&acet_timer, acet_period + jiffies);
+	make_acet_signature();
+}
+
 int vmeio_install(void)
 {
 	int i, cc;
 
-	printk(KERN_ERR PFX "%s\n", gendata);	/* ACET string */
 	if ((cc = check_module_params()) != 0)
 		return cc;
 
@@ -286,6 +328,12 @@ int vmeio_install(void)
 		return cc;
 	}
 	vmeio_major = cc;
+
+	if (acet_heartbeat != 0) {
+		/* start ACET tracing */
+		printk(KERN_ERR PFX "%s\n", gendata);
+		init_acet_timer(acet_heartbeat);
+	}
 	return 0;
 }
 
@@ -307,6 +355,7 @@ void vmeio_uninstall(void)
 		unregister_module(&devices[i]);
 	}
 	unregister_chrdev(vmeio_major, DRIVER_NAME);
+	del_timer(&acet_timer);
 }
 
 /* file operations */

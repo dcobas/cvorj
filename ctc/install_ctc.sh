@@ -3,8 +3,9 @@
 DEVICE_NAME=CTC
 TRANSFER=/etc/transfer.ref
 DRIVER_NAME=ctc
+ACET_ARG="acet_heartbeat=5"
 
-# Generated automatically by encore at 2011-07-28 11:41:25.743289"
+# Generated automatically by encore at 11.08.02@09:30:49"
 
 OUTPUT=":"
 RUN=""
@@ -27,6 +28,7 @@ if [ x"$INSMOD_ARGS" == x"" ] ; then
     exit 1
 fi
 
+INSMOD_ARGS="$INSMOD_ARGS $ACET_ARG"
 INSMOD_CMD="insmod $DRIVER_NAME.ko $INSMOD_ARGS"
 $OUTPUT installing $DRIVER_NAME by $INSMOD_CMD
 sh -c "$RUN $INSMOD_CMD"
@@ -40,6 +42,6 @@ fi
 MINORS=`awk '/^#\+#/ && $6 == "'"$DEVICE_NAME"'" { printf("%s ", $7) }' $TRANSFER`
 $OUTPUT "creating device nodes for driver $DRIVER_NAME, major $MAJOR, minors $MINORS"
 for MINOR in $MINORS; do
-    sh -c "$RUN rm -f /dev/ctc.$MINOR"
-    sh -c "$RUN mknod /dev/ctc.$MINOR c $MAJOR $MINOR"
+    sh -c "$RUN rm -f /dev/$DRIVER_NAME.$MINOR"
+    sh -c "$RUN mknod /dev/$DRIVER_NAME.$MINOR c $MAJOR $MINOR"
 done
