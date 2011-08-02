@@ -64,7 +64,8 @@ static int get_channel_register(encore_handle h,
 	if (!channel_ok(ch))
 		return -EINVAL;
 	offset = CTC_CHANNEL0 + (ch-1) * CTC_CHANNEL_SIZE + offsets[regname];
-	encore_raw_read(h, 1, offset, 1, 32, dst);
+	if (!encore_raw_read(h, 1, offset, 1, 32, dst))
+		return -EIO;
 	return 0;
 }
 
@@ -76,7 +77,8 @@ static int set_channel_register(encore_handle h,
 	if (!channel_ok(ch))
 		return -EINVAL;
 	offset = CTC_CHANNEL0 + (ch-1) * CTC_CHANNEL_SIZE + offsets[regname];
-	encore_raw_write(h, 1, offset, 1, 32, &src);
+	if (!encore_raw_write(h, 1, offset, 1, 32, &src))
+		return -EIO;
 	return 0;
 }
 
@@ -111,8 +113,11 @@ int ctc_setInputChan(HANDLE h, int ch, unsigned long ext_start)
 int ctc_getClock1(HANDLE h, int ch, unsigned long *dst)
 {
 	unsigned long conf;
+	int err;
 
-	ctc_get_channel_conf(h, ch, &conf);
+	err = ctc_get_channel_conf(h, ch, &conf);
+	if (err)
+		return err;
 	*dst = 1 + ((conf & CLOCK1) >> CLOCK1_SHIFT);
 	return 0;
 }
@@ -120,8 +125,11 @@ int ctc_getClock1(HANDLE h, int ch, unsigned long *dst)
 int ctc_getClock2(HANDLE h, int ch, unsigned long *dst)
 {
 	unsigned long conf;
+	int err;
 
-	ctc_get_channel_conf(h, ch, &conf);
+	err = ctc_get_channel_conf(h, ch, &conf);
+	if (err)
+		return err;
 	*dst = 1 + ((conf & CLOCK2) >> CLOCK2_SHIFT);
 	return 0;
 }
@@ -129,28 +137,36 @@ int ctc_getClock2(HANDLE h, int ch, unsigned long *dst)
 int ctc_setClock1(HANDLE h, int ch, unsigned long ext_clock)
 {
 	unsigned long conf;
+	int err;
 
 	if (!ext_clock_ok(ext_clock))
 		return -EINVAL;
-	ctc_get_channel_conf(h, ch, &conf);
+	err = ctc_get_channel_conf(h, ch, &conf);
+	if (err)
+		return err;
 	conf &= ~CLOCK1;
 	conf |= ((ext_clock-1) << CLOCK1_SHIFT) & CLOCK1;
-	ctc_set_channel_conf(h, ch, conf);
-
+	err = ctc_set_channel_conf(h, ch, conf);
+	if (err)
+		return err;
 	return 0;
 }
 
 int ctc_setClock2(HANDLE h, int ch, unsigned long ext_clock)
 {
 	unsigned long conf;
+	int err;
 
 	if (!ext_clock_ok(ext_clock))
 		return -EINVAL;
-	ctc_get_channel_conf(h, ch, &conf);
+	err = ctc_get_channel_conf(h, ch, &conf);
+	if (err)
+		return err;
 	conf &= ~CLOCK2;
 	conf |= ((ext_clock-1) << CLOCK2_SHIFT) & CLOCK2;
-	ctc_set_channel_conf(h, ch, conf);
-
+	err = ctc_set_channel_conf(h, ch, conf);
+	if (err)
+		return err;
 	return 0;
 }
 
@@ -192,81 +208,96 @@ int ctc_getCntr2CurVal(HANDLE h, int ch, unsigned long *dst)
 int ctc_getModuleStatus(HANDLE h, unsigned long *dst)
 {
 	unsigned status;
-	encore_get_register(h, STATUS, &status);
+	int err;
+
+	err = encore_get_register(h, STATUS, &status);
+	if (err)
+		return err;
 	*dst = status;
 	return 0;
 }
 
 int ctc_resetModule(HANDLE h)
 {
-	int cc;
+	int err;
 	int ch;
 
-	cc |= encore_set_register(h, COUNT_ENB, 1);
-	cc |= encore_set_register(h, COUNT_ENB, 0);
+	err |= encore_set_register(h, COUNT_ENB, 1);
+	err |= encore_set_register(h, COUNT_ENB, 0);
 
 	for (ch = 1; ch <= CTC_CHANNELS; ch++) {
-		cc |= ctc_setInputChan(h, ch, 1);
-		cc |= ctc_setClock1Tick(h, ch, 1);
-		cc |= ctc_setClock2Tick(h, ch, 1);
+		err |= ctc_setInputChan(h, ch, 1);
+		err |= ctc_setClock1Tick(h, ch, 1);
+		err |= ctc_setClock2Tick(h, ch, 1);
 	}
-	if (cc)
-		return cc;
+	if (err)
+		return -EIO;
 	return 0;
 }
 
 static int ctc_enable(HANDLE h, int ch)
 {
 	unsigned conf;
+	int err;
 
-	encore_get_register(h, COUNT_ENB, &conf);
+	err = encore_get_register(h, COUNT_ENB, &conf);
+	if (err)
+		return err;
 	conf |= BIT(8-ch+1);
-	encore_set_register(h, COUNT_ENB, conf);
-
-	return 0;
+	return encore_set_register(h, COUNT_ENB, conf);
 }
 
 static int ctc_disable(HANDLE h, int ch)
 {
 	unsigned conf;
+	int err;
 
-	encore_get_register(h, COUNT_ENB, &conf);
+	err = encore_get_register(h, COUNT_ENB, &conf);
+	if (err)
+		return err;
 	conf &= ~BIT(8-ch+1);
-	encore_set_register(h, COUNT_ENB, conf);
-
-	return 0;
+	return encore_set_register(h, COUNT_ENB, conf);
 }
 
 int ctc_enableChannel(HANDLE h, int ch, int ext_start)
 {
-	ctc_setInputChan(h, ch, ext_start);
-	ctc_enable(h, ch);
+	int err;
 
-	return 0;
+	err = ctc_setInputChan(h, ch, ext_start);
+	if (err)
+		return err;
+	return ctc_enable(h, ch);
 }
 
 int ctc_disableChannel(HANDLE h, int ch)
 {
-	ctc_setInputChan(h, ch, 1);
-	ctc_disable(h, ch);
+	int err;
+
+	err = ctc_setInputChan(h, ch, 1);
+	if (err)
+		return err;
+	return ctc_disable(h, ch);
 }
 
 ctc_cfg_reg_t* ctc_getChanConf(HANDLE h, int outChan)
 {
 	static ctc_cfg_reg_t data[CTC_CHANNELS];
 	int ch;
+	int err = 0;
 
 	for (ch = 0; ch < CTC_CHANNELS; ch++) {
 		ctc_cfg_reg_t *chconf = &data[ch];
 		unsigned long conf;
 
-		ctc_get_channel_conf(h, ch, &conf);
+		err |= ctc_get_channel_conf(h, ch, &conf);
 		chconf->cr_ext_start = 1 + ((conf & EXT_START) >> EXT_START_SHIFT);
 		chconf->cr_cntr1_clk = 1 + ((conf & CLOCK1) >> CLOCK1_SHIFT);
 		chconf->cr_cntr2_clk = 1 + ((conf & CLOCK2) >> CLOCK2_SHIFT);
 		chconf->cr_direction = conf & DIRECTION;
 		chconf->cr_mode      = conf & MODE;
 	}
+	if (err)
+		return NULL;
 	return data;
 }
 
@@ -285,7 +316,7 @@ int ctc_getChannelStatus(HANDLE h, int outChan[8])
 			outChan[ch] = 0;
 			continue;
 		}
-		ctc_get_channel_conf(h, ch, &conf);
+		cc = ctc_get_channel_conf(h, ch, &conf);
 		if (cc < 0)
 			goto out;
 		outChan[ch] = 1 + ((conf & EXT_START) >> EXT_START_SHIFT);
