@@ -291,7 +291,7 @@ static void make_acet_signature(void)
 
 static void acet_log(unsigned long data)
 {
-	printk(KERN_ERR PFX "%s|seconds=0x%0lx\n",
+	printk(KERN_INFO PFX "%s|seconds=0x%0lx\n",
 				acet_signature, get_seconds());
 	mod_timer(&acet_timer, acet_period + jiffies);
 }
