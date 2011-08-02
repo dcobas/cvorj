@@ -17,30 +17,24 @@ typedef struct _CTC_config_reg {
   int cr_direction;
 } ctc_cfg_reg_t;
 
-	int ctc_setInputChan(HANDLE handle, int chan, unsigned long newVal);
-
-	int ctc_getClock1(HANDLE handle, int chan, unsigned long *res);
-	int ctc_setClock1(HANDLE handle, int chan, unsigned long newVal);
-
-	int ctc_getClock2(HANDLE handle, int chan, unsigned long *res);
-	int ctc_setClock2(HANDLE handle, int chan, unsigned long newVal);
-
-	int ctc_getClock1Tick(HANDLE handle, int chan, unsigned long *res);
-	int ctc_setClock1Tick(HANDLE handle, int chan, unsigned long newVal);
-
-	int ctc_getClock2Tick(HANDLE handle, int chan, unsigned long *res);
-	int ctc_setClock2Tick(HANDLE handle, int chan, unsigned long newVal);
-
-	int ctc_getOutPutCounter(HANDLE handle, int chan, unsigned long *res);
-	int ctc_getCntr1CurVal(HANDLE handle, int chan, unsigned long *res);
-	int ctc_getCntr2CurVal(HANDLE handle, int chan, unsigned long *res);
-	int ctc_getModuleStatus(HANDLE handle, unsigned long *res);
-	int ctc_resetModule(HANDLE handle);
-	int ctc_enableChannel(HANDLE handle, int outChan, int inpChan);
-	int ctc_disableChannel(HANDLE handle, int outChan);
-	ctc_cfg_reg_t* ctc_getChanConf(HANDLE handle, int outChan);
-	int ctc_dbgPrintout(int toggle);
-	int ctc_getChannelStatus(HANDLE handle, int outChan[8]);
+int ctc_setInputChan(HANDLE h, int ch, unsigned long ext_start);
+int ctc_getClock1(HANDLE h, int ch, unsigned long *dst);
+int ctc_getClock2(HANDLE h, int ch, unsigned long *dst);
+int ctc_setClock1(HANDLE h, int ch, unsigned long ext_clock);
+int ctc_setClock2(HANDLE h, int ch, unsigned long ext_clock);
+int ctc_getClock1Tick(HANDLE h, int ch, unsigned long *dst);
+int ctc_setClock1Tick(HANDLE h, int ch, unsigned long src);
+int ctc_getClock2Tick(HANDLE h, int ch, unsigned long *dst);
+int ctc_setClock2Tick(HANDLE h, int ch, unsigned long src);
+int ctc_getOutPutCounter(HANDLE h, int ch, unsigned long *dst);
+int ctc_getCntr1CurVal(HANDLE h, int ch, unsigned long *dst);
+int ctc_getCntr2CurVal(HANDLE h, int ch, unsigned long *dst);
+int ctc_getModuleStatus(HANDLE h, unsigned long *dst);
+int ctc_resetModule(HANDLE h);
+int ctc_enableChannel(HANDLE h, int ch, int ext_start);
+int ctc_disableChannel(HANDLE h, int ch);
+ctc_cfg_reg_t* ctc_getChanConf(HANDLE h, int outChan);
+int ctc_getChannelStatus(HANDLE h, int outChan[8]);
 
 #ifdef __cplusplus
 }
