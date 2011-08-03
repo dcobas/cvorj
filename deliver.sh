@@ -42,6 +42,8 @@ echo "# delivering to ACC=$ACC CPU=$CPU KVER=$KVER"
 # delivery paths
 DRIVER_PATH=/acc/dsc/$ACC/$CPU/$KVER/$DRIVER/
 LIB_PATH=/acc/local/$CPU/dg/encore/$DRIVER/
+LIB_SLINK=/acc/local/$CPU/lib/encore/$DRIVER/
+INCLUDE_SLINK=/acc/local/$CPU/include/encore/$DRIVER/
 
 # deliverable items
 LIBS="lib$DRIVER.$CPU.a lib${DRIVER}user.$CPU.a lib${DRIVER}user.h lib$DRIVER.h ${DRIVER}_regs.h vmeio.h"
@@ -52,6 +54,8 @@ DRIVER_OBJECT="$DRIVER.ko"
 ${CMD} mkdir -p $DRIVER_PATH $LIB_PATH
 ${CMD} dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
 ${CMD} dsc_install $LIBS $LIB_PATH
+[ ! \( $LIB_PATH -ef $LIB_SLINK \) ]     && ${CMD} ln -sf $LIB_PATH $LIB_SLINK
+[ ! \( $LIB_PATH -ef $INCLUDE_SLINK \) ] && ${CMD} ln -sf $LIB_PATH $INCLUDE_SLINK
 for i in $INSTPROGS; do
     ${CMD} chmod 755 $DRIVER_PATH/$i
 done
