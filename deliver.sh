@@ -44,7 +44,7 @@ DRIVER_PATH=/acc/dsc/$ACC/$CPU/$KVER/$DRIVER/
 LIB_PATH=/acc/local/$CPU/dg/encore/$DRIVER/
 
 # deliverable items
-LIBS="lib$DRIVER.$CPU.a lib$DRIVER.h ${DRIVER}_regs.h vmeio.h"
+LIBS="lib$DRIVER.$CPU.a lib${DRIVER}user.$CPU.a lib${DRIVER}user.h lib$DRIVER.h ${DRIVER}_regs.h vmeio.h"
 INSTPROGS="install_$DRIVER.sh transfer2insmod.awk"
 DRIVER_OBJECT="$DRIVER.ko"
 # SOLIBS="$DRIVER.$CPU.so"
