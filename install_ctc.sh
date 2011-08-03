@@ -3,7 +3,7 @@
 DEVICE_NAME=CTC
 TRANSFER=/etc/transfer.ref
 DRIVER_NAME=ctc
-ACET_ARG="acet_heartbeat=20"
+ACET_ARG="acet_heartbeat=0"
 
 # Generated automatically by encore at 11.08.02@09:30:49"
 

@@ -18,7 +18,7 @@
 #include "ctc_regs.c"
 #endif
 
-static char *gendata = "driver.encore|""gen-by=dcobas|gen-date=11.08.02@09:30:49|encore-version=libencore-7-g19438cc";
+static char *gendata = "driver.encore|""driver=ctc|gen-by=dcobas|gen-date=11.08.02@09:30:49|encore-version=libencore-7-g19438cc";
 
 
 #define PFX DRIVER_NAME ": "
@@ -331,7 +331,7 @@ int vmeio_install(void)
 
 	if (acet_heartbeat != 0) {
 		/* start ACET tracing */
-		printk(KERN_ERR PFX "%s\n", gendata);
+		printk(KERN_INFO PFX "%s\n", gendata);
 		init_acet_timer(acet_heartbeat);
 	}
 	return 0;
