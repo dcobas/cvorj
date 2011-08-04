@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEVICE_NAME=CTC
+DEVICE_NAME=CTC-TMP
 TRANSFER=/etc/transfer.ref
 DRIVER_NAME=ctc
 [ x"$ACET_ARG" = x"" ] && ACET_ARG="acet_heartbeat=0"
