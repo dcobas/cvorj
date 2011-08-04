@@ -20,6 +20,7 @@ MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so \
 MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
 USERLIBOBJS = $(USERLIB).$(CPU).o libencore.$(CPU).a
 ENCORELIBS = libencore.$(CPU).a libencore.$(CPU).so
+DOCDIR = ./doc
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
@@ -51,3 +52,7 @@ libencore.$(CPU).a: libencore.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
 libencore.$(CPU).so: libencore.$(CPU).o
 	$(CC) $(CFLAGS) -o $@ -shared $^
+
+docs:
+	mkdir -p $(DOCDIR)
+	sh doxy.sh -o $(DOCDIR) -nlibctcuser  libctcuser.h
