@@ -24,7 +24,7 @@ DOCDIR = ./doc
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
-all: modules libs
+all: modules libs docs
 libs: $(MODLIBS) $(ENCORELIBS)
 modules:
 	cp Module.symvers.vmebus Module.symvers
@@ -32,6 +32,7 @@ modules:
 clean:
 	make -C $(KERNELSRC) M=$(PWD) clean
 	rm -f *.o *.a *.so
+	rm -rf default.doxycfg doc
 
 $(LIBNAME).$(CPU).o: $(SRCS)
 
@@ -53,6 +54,10 @@ libencore.$(CPU).a: libencore.$(CPU).o
 libencore.$(CPU).so: libencore.$(CPU).o
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
-docs:
+default.doxycfg:
+	sh makedox.sh
+
+docs:	default.doxycfg
 	mkdir -p $(DOCDIR)
 	sh doxy.sh -o $(DOCDIR) -nlibctcuser  libctcuser.h
+scp -r doc/html/* cs-ccr-www3:/var/www/html/private/coht/doxy/ctc

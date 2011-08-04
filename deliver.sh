@@ -10,10 +10,11 @@ KVER=2.6.24.7-rt27
 
 # get arguments
 CMD=
-while getopts hn o ; do
+while getopts hnd o ; do
     case "$o" in
        n)	CMD=echo ;;	# dry-run
-       [h?])	echo >&2 "usage: $0 [-n] ACC={lab|oper|oplhc} [CPU=<cpu>] [KVER=<kernel>]"
+       d)	DOC=yes  ;;	# deliver docs too
+       [h?])	echo >&2 "usage: $0 [-nd] ACC={lab|oper|oplhc} [CPU=<cpu>] [KVER=<kernel>]"
 		exit 1 ;;
     esac
 done
@@ -59,4 +60,4 @@ ${CMD} dsc_install $LIBS $LIB_PATH
 for i in $INSTPROGS; do
     ${CMD} chmod 755 $DRIVER_PATH/$i
 done
-
+[ x"$DOC" = x"yes" ] && ${CMD} scp -qr doc/html/* cs-ccr-www3:/var/www/html/private/coht/doxy/ctc 
