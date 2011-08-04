@@ -7,6 +7,7 @@ from subprocess import Popen
 import shlex
 import sys
 import os
+import os.path
 import re
 import cmd
 import readline
@@ -148,9 +149,12 @@ VMEIO_GET_MAPPING	= 0xc044560e	# vme_mapping
 VMEIO_GET_NREGS		= 0x8004560e
 VMEIO_GET_REGINFO	= 0x40045610	# void *
 
+basepath      = os.path.dirname(sys.argv[0])
+libctcpath    = os.path.join(basepath, 'libctcuser.so')
+libencorepath = os.path.join(basepath, 'libencore.so')
 libc = CDLL('/lib/libc.so.6')
-lctc = CDLL('./libctcuser.L865.so')
-encore = CDLL('./libencore.L865.so')
+lctc = CDLL(libctcpath)
+encore = CDLL(libencorepath)
 
 data_width_format = {
     32 : 'I',
