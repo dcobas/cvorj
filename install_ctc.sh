@@ -3,9 +3,7 @@
 DEVICE_NAME=CTC
 TRANSFER=/etc/transfer.ref
 DRIVER_NAME=ctc
-ACET_ARG="acet_heartbeat=0"
-
-# Generated automatically by encore at 11.08.02@09:30:49"
+[ x"$ACET_ARG" = x"" ] && ACET_ARG="acet_heartbeat=0"
 
 OUTPUT=":"
 RUN=""
@@ -45,3 +43,4 @@ for MINOR in $MINORS; do
     sh -c "$RUN rm -f /dev/$DRIVER_NAME.$MINOR"
     sh -c "$RUN mknod /dev/$DRIVER_NAME.$MINOR c $MAJOR $MINOR"
 done
+python acet.py &

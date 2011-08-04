@@ -18,8 +18,7 @@
 #include "ctc_regs.c"
 #endif
 
-static char *gendata = "driver.encore|""driver=ctc|gen-by=dcobas|gen-date=11.08.02@09:30:49|encore-version=libencore-7-g19438cc";
-
+static char *gendata = "driver.encore.ctc|gen-by=dcobas|gen-date=11.08.02@09:30:49|encore-version=libencore-7-g19438cc";
 
 #define PFX DRIVER_NAME ": "
 
