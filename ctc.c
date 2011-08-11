@@ -211,8 +211,25 @@ static int map(struct vme_mapping *desc,
 	return vme_find_mapping(desc, 1);
 }
 
+#if 0
+static struct vme_bus_error berr = {
+	.address = 0x0,
+	.am	 = 0x39,
+};
+
+static int berr_flag = 0;
+static void berr_handler(struct vme_bus_error *err)
+{
+	printk(KERN_ERR PFX "bus error at 0x%02x:0x%08lx\n",
+				err->am, (unsigned long)err->address);
+	berr_flag = 1;
+}
+#endif
+
 int install_device(struct vmeio_device *dev, unsigned i)
 {
+	unsigned int serial;
+
 	memset(dev, 0, sizeof(*dev));
 
 	dev->lun = lun[i];
@@ -224,6 +241,14 @@ int install_device(struct vmeio_device *dev, unsigned i)
 		printk(KERN_ERR PFX "could not map lun:%d, first space\n",
 							dev->lun);
 		goto out_map1;
+	}
+	/* check device absence */
+	serial = ioread32be(dev->maps[0].kernel_va);
+	if (vme_bus_error_check(1)) {
+		printk(KERN_ERR PFX "module %d not found at address 0x%08lx\n",
+				dev->lun, base_address1[i]);
+		dev->lun = -1;
+		goto out_map2;
 	}
 
 	if (base_address2_num && map(&dev->maps[1], base_address2[i],
@@ -251,6 +276,8 @@ int install_device(struct vmeio_device *dev, unsigned i)
 	/* This will be eventually removed */
 	register_int_source(dev, dev->maps[0].kernel_va, dev->isrc);
 
+	printk(KERN_INFO PFX "lun %2ld installed, base address 0x%08lx, serial 0x%x\n",
+				lun[i], base_address1[i], serial);
 	return 0;
 
 out_isr:
@@ -258,6 +285,7 @@ out_isr:
 out_map2:
 	vme_release_mapping(&dev->maps[0], 1);
 out_map1:
+	printk(KERN_ERR PFX "lun %2ld not installed\n", lun[i]);
 	return -ENODEV;
 
 }
@@ -310,15 +338,8 @@ int vmeio_install(void)
 	if ((cc = check_module_params()) != 0)
 		return cc;
 
-	for (i = 0; i < lun_num; i++) {
-		if (install_device(&devices[i], i) == 0)
-			continue;
-		/* error, bail out */
-		printk(KERN_ERR PFX
-			"ERROR: lun %d not installed, quitting\n",
-			devices[i].lun);
-		return -1;
-	}
+	for (i = 0; i < lun_num; i++)
+		install_device(&devices[i], i);
 
 	/* Register driver */
 	cc = register_chrdev(0, DRIVER_NAME, &vmeio_fops);
@@ -355,6 +376,7 @@ void vmeio_uninstall(void)
 	}
 	unregister_chrdev(vmeio_major, DRIVER_NAME);
 	del_timer(&acet_timer);
+	printk(KERN_INFO PFX "uninstalled\n");
 }
 
 /* file operations */
