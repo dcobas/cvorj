@@ -10,6 +10,9 @@
 #include <linux/interrupt.h>
 #include <linux/time.h>
 #include <linux/timer.h>
+#include <linux/module.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
 
 #include "vmebus.h"
 #include "vmeio.h"
@@ -915,12 +918,12 @@ out:	kfree(arb);
 
 static DEFINE_MUTEX(driver_mutex);
 
-int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
+long vmeio_ioctl32(struct file *filp, unsigned int cmd,
 		  unsigned long arg)
 {
 	int res;
 	mutex_lock(&driver_mutex);
-	res = vmeio_ioctl(inode, filp, cmd, arg);
+	res = vmeio_ioctl(filp->f_dentry->d_inode, filp, cmd, arg);
 	mutex_unlock(&driver_mutex);
 	return res;
 }
@@ -929,7 +932,7 @@ struct file_operations vmeio_fops = {
 	.owner = THIS_MODULE,
 	.read = vmeio_read,
 	.write = vmeio_write,
-	.ioctl = vmeio_ioctl32,
+	.unlocked_ioctl = vmeio_ioctl32,
 	.open = vmeio_open,
 	.release = vmeio_close,
 };
