@@ -152,7 +152,7 @@ VMEIO_GET_REGINFO	= 0x40045610	# void *
 basepath      = os.path.dirname(sys.argv[0])
 libctcpath    = os.path.join(basepath, 'libctcuser.so')
 libencorepath = os.path.join(basepath, 'libencore.so')
-libc = CDLL('/lib/libc.so.6')
+libc = CDLL('libc.so.6')
 lctc = CDLL(libctcpath)
 encore = CDLL(libencorepath)
 
