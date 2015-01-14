@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEVICE_NAME=CTC-TMP
+DEVICE_NAME=CTC
 TRANSFER=/etc/transfer.ref
 DRIVER_NAME=ctc
 [ x"$ACET_ARG" = x"" ] && ACET_ARG="acet_heartbeat=0"
@@ -27,7 +27,7 @@ if [ x"$INSMOD_ARGS" == x"" ] ; then
 fi
 
 INSMOD_ARGS="$INSMOD_ARGS $ACET_ARG"
-INSMOD_CMD="insmod $DRIVER_NAME.ko $INSMOD_ARGS"
+INSMOD_CMD="/sbin/insmod $DRIVER_NAME.ko $INSMOD_ARGS"
 $OUTPUT installing $DRIVER_NAME by $INSMOD_CMD
 sh -c "$RUN $INSMOD_CMD"
 
@@ -43,4 +43,3 @@ for MINOR in $MINORS; do
     sh -c "$RUN rm -f /dev/$DRIVER_NAME.$MINOR"
     sh -c "$RUN mknod /dev/$DRIVER_NAME.$MINOR c $MAJOR $MINOR"
 done
-python acet.py &
