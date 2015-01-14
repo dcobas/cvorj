@@ -11,6 +11,7 @@ LIBNAME = lib$(DRIVER)
 USERLIB = lib$(DRIVER)user
 
 COMPILE_TIME = $(shell date +%s)
+GIT_VERSION = $(shell git describe --dirty --tags --all --long)
 CFLAGS= -g -Wall -I. -I ../../driver
 CFLAGS += -I /acc/local/$(CPU)/include/
 CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
@@ -28,7 +29,7 @@ all: modules libs docs
 libs: $(MODLIBS) $(ENCORELIBS)
 modules:
 	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
+	make -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) 'DRIVER_NAME=$(DRIVER_NAME)' modules
 clean:
 	make -C $(KERNELSRC) M=$(PWD) clean
 	rm -f *.o *.a *.so

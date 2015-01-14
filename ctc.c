@@ -29,6 +29,7 @@ MODULE_AUTHOR("Juan David Gonzalez Cobas");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("encore-generated ctc driver");
 MODULE_SUPPORTED_DEVICE("ctc");
+MODULE_VERSION(GIT_VERSION);
 
 /* vcector parameters, one entry per lun */
 
