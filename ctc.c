@@ -431,7 +431,7 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	dev = filp->private_data;
 
 	if (dev->debug) {
-		printk(PFX "read:count:%d minor:%d\n",
+		printk(PFX "read:count:%zd minor:%d\n",
 		       count, (int) minor);
 		if (dev->debug > 1) {
 			printk(PFX "read:timout:%d\n", dev->timeout);
@@ -503,7 +503,7 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 	}
 
 	if (dev->debug) {
-		printk(PFX "write:count:%d minor:%d mask:0x%X\n",
+		printk(PFX "write:count:%zd minor:%d mask:0x%X\n",
 		       count, (int) minor, mask);
 	}
 
